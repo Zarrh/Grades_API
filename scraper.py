@@ -79,8 +79,45 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
 
     return content, subjects
 
+def extract_grades(raw_grades: list, subjects: list) -> dict:
+
+    grades = {}
+    current_subj = current_date = current_value = None
+    current_weight = "100%"
+
+    for i in raw_grades:
+        if i in subjects:
+            if current_value and current_date and current_subj:
+                grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
+                current_value = None
+                current_weight = "100%"
+                current_date = None
+            current_subj = i
+            grades[current_subj] = []
+            continue
+
+        date = re.search(r'[0-9]+/+[0-9]+/+[0-9]+', i)
+        mark = re.search(r'\([0-9]+\.[0-9]+\)', i)
+        weight = re.search(r'[0-9]+%{1}', i)
+        if mark and current_value:
+            grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
+            current_value = mark.group(0).replace("(", "").replace(")", "")
+        if mark:
+            current_value = mark.group(0).replace("(", "").replace(")", "")
+        if weight:
+            current_weight = weight.group(0)
+        if date:
+            if current_value and current_date:
+                grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
+                current_value = None
+                current_weight = "100%"
+            current_date = date.group(0)
+
+    return grades
+
 def get_grades(username: str, password: str, school_code: str):
 
     content, subjects = scrap_grades(username, password, school_code)
+    grades = extract_grades(content, subjects)
 
-    return subjects
+    return grades
