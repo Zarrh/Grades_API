@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     firefox-esr \
-    firefox \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
