@@ -38,5 +38,5 @@ COPY . .
 
 EXPOSE 10000
 
-CMD ["gunicorn", "main:app", "-b", "127.0.0.1:10000"]
+CMD ["gunicorn", "main:app"]
 # CMD ["flask", "--app", "main.py", "run", "--port", "10000"]
