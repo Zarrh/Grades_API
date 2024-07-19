@@ -16,29 +16,37 @@ URL = "https://www.portaleargo.it/auth/sso/login"
 def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, list]:
 
     ## For snap: ##
+    isChrome = True
 
-    try:
-        snap = subprocess.check_output(["snap", "--version"])
-        print("Snap is installed, version:", snap.decode().strip())
-        isSnap = True
-    except FileNotFoundError:
-        print("Snap is not installed")
-        isSnap = False
+    if not isChrome:
+        try:
+            snap = subprocess.check_output(["snap", "--version"])
+            print("Snap is installed, version:", snap.decode().strip())
+            isSnap = True
+        except FileNotFoundError:
+            print("Snap is not installed")
+            isSnap = False
 
-    if isSnap:
-        firefox_bin = "/snap/firefox/current/usr/lib/firefox/firefox"
-        firefoxdriver_bin = "/snap/firefox/current/usr/lib/firefox/geckodriver"
+        if isSnap:
+            firefox_bin = "/snap/firefox/current/usr/lib/firefox/firefox"
+            firefoxdriver_bin = "/snap/firefox/current/usr/lib/firefox/geckodriver"
 
-        options = Options()
-        options.add_argument("--headless")
-        options.binary_location = firefox_bin
-        service = Service(executable_path=firefoxdriver_bin)
-        driver = webdriver.Firefox(options=options, service=service)
+            options = Options()
+            options.add_argument("--headless")
+            options.binary_location = firefox_bin
+            service = Service(executable_path=firefoxdriver_bin)
+            driver = webdriver.Firefox(options=options, service=service)
 
+        else:
+            options = Options()
+            options.add_argument("--headless")
+            driver = webdriver.Firefox(options=options)
     else:
-        options = Options()
-        options.add_argument("--headless")
-        driver = webdriver.Firefox(options=options)
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        driver = webdriver.Chrome(options=options)
 
     driver.get(HOST)
 
