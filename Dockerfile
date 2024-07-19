@@ -1,4 +1,3 @@
-# Usa l'immagine ufficiale di Python come base
 FROM python:3.9-slim
 
 RUN apt-get update && apt-get install -y \
@@ -28,6 +27,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Firefox
+RUN install -d -m 0755 /etc/apt/keyrings
+RUN wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
+RUN echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list > /dev/null
+RUN echo 'Package: * Pin: origin packages.mozilla.org Pin-Priority: 1000' | tee /etc/apt/preferences.d/mozilla
+RUN apt-get update && apt-get install -y firefox
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -36,7 +42,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 10000
+# EXPOSE 10000
 
-CMD ["gunicorn", "main:app"]
+CMD ["gunicorn", "main:app", "-b", "0.0.0.0:10000"]
 # CMD ["flask", "--app", "main.py", "run", "--port", "10000"]

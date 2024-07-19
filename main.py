@@ -13,3 +13,6 @@ def retrieve():
     if request.form['username'] and request.form['password'] and request.form['school_code']:
         return get_grades(request.form['username'], request.form['password'], request.form['school_code'])
     return "Invalid request"
+
+if __name__ == '__main__':
+    app.run()
