@@ -1,3 +1,4 @@
 flask==3.0.*
 selenium==4.22.*
 gunicorn==22.0.*
+web_driver==4.0.*
