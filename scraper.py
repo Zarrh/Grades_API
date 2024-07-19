@@ -2,8 +2,6 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 import time
 import re
@@ -16,7 +14,7 @@ URL = "https://www.portaleargo.it/auth/sso/login"
 def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, list]:
 
     ## For snap: ##
-    isChrome = True
+    isChrome = False
 
     if not isChrome:
         try:
@@ -33,6 +31,8 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
 
             options = Options()
             options.add_argument("--headless")
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
             options.binary_location = firefox_bin
             service = Service(executable_path=firefoxdriver_bin)
             driver = webdriver.Firefox(options=options, service=service)
@@ -40,6 +40,8 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
         else:
             options = Options()
             options.add_argument("--headless")
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
             driver = webdriver.Firefox(options=options)
     else:
         options = webdriver.ChromeOptions()
