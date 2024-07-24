@@ -10,3 +10,4 @@ log
 *.logs
 __pycache__
 test.*
+output

@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 import time
 import re
 import subprocess
+import json
 
 HOST = "https://www.portaleargo.it/argoweb/famiglia/index1.jsp"
 URL = "https://www.portaleargo.it/auth/sso/login"
@@ -70,63 +71,68 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
     _found = False
     while not _found:
         try:
-            table = driver.find_element(By.ID, "sheet-sezioneDidargo:sheet")
+            table = driver.find_element(By.ID, "sheet-sezioneDidargo:panel-votiGiornalieri:pannello")
             _found = True
         except:
             time.sleep(1)
 
-    subjects = table.find_elements(By.TAG_NAME, "legend")
-    subjects = list(map(lambda subj: subj.text, subjects))
+    subtables = table.find_elements(By.TAG_NAME, "fieldset")
+    content = {}
 
-    # print(subjects)
+    for subtable in subtables:
+        subject = subtable.find_element(By.TAG_NAME, "legend").text
 
-    content = table.text.split("\n")
-    content = list(map(lambda i: " ".join(i.strip().split()), content))
+        rows = subtable.find_elements(By.TAG_NAME, "tr")
+        rows = list(map(lambda row: row.text, rows))
+        rows = list(map(lambda i: i.strip().replace("\n", ""), rows))
+
+        # print(rows)
+
+        content[subject] = rows
+
     # print(content)
 
     driver.quit()
 
-    return content, subjects
+    return content
 
-def extract_grades(raw_grades: list, subjects: list) -> dict:
+def extract_grades(raw_grades: dict) -> dict:
 
     grades = {}
-    current_subj = current_date = current_value = None
-    current_weight = "100%"
 
-    for i in raw_grades:
-        if i in subjects:
-            if current_value and current_date and current_subj:
-                grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
-                current_value = None
-                current_weight = "100%"
-                current_date = None
-            current_subj = i
-            grades[current_subj] = []
-            continue
+    for subject in raw_grades:
+        grades[subject] = []
+        for test in raw_grades[subject]:
 
-        date = re.search(r'[0-9]+/+[0-9]+/+[0-9]+', i)
-        mark = re.search(r'\([0-9]+\.[0-9]+\)', i)
-        weight = re.search(r'[0-9]+%{1}', i)
-        if mark and current_value:
-            grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
-            current_value = mark.group(0).replace("(", "").replace(")", "")
-        if mark:
-            current_value = mark.group(0).replace("(", "").replace(")", "")
-        if weight:
-            current_weight = weight.group(0)
-        if date:
-            if current_value and current_date:
-                grades[current_subj].append({"value": current_value, "weight": current_weight, "date": current_date})
-                current_value = None
-                current_weight = "100%"
-            current_date = date.group(0)
+            obj = {}
+
+            date = re.search(r'[0-9]{1,2}/+[0-9]{1,2}/+[0-9]+', test)
+            mark = re.search(r'\([0-9]+\.[0-9]+\)', test)
+            weight = re.search(r'[0-9]+%{1}', test)
+
+            if mark == None:
+                continue
+            else:
+                obj["value"] = mark.group(0).replace("(", "").replace(")", "")
+            if weight == None:
+                obj["weight"] = "100%"
+            else:
+                obj["weight"] = weight.group(0)
+            if date == None:
+                obj["date"] = "10/09/2024"
+            else:
+                obj["date"] = date.group(0)
+
+            grades[subject].append(obj)
 
     return grades
 
 def get_grades(username: str, password: str, school_code: str):
 
-    content, subjects = scrap_grades(username, password, school_code)
-    grades = extract_grades(content, subjects)
+    content = scrap_grades(username, password, school_code)
+    grades = extract_grades(content)
+
+    with open('./output/grades.json', 'w') as f:
+        json.dump(grades, f, indent=2)
 
     return grades
