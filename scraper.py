@@ -9,9 +9,52 @@ import subprocess
 import json
 
 HOST = "https://www.portaleargo.it/argoweb/famiglia/index1.jsp"
-URL = "https://www.portaleargo.it/auth/sso/login"
 
-def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, list]:
+def read_grades(driver) -> map:
+
+    _found = False
+    while not _found: # Decorator?
+        try:
+            driver.find_element(By.ID, "menu-servizialunno:voti-giornalieri").click()
+            _found = True
+            # print("Element found")
+        except:
+            time.sleep(1)
+
+    _found = False
+    while not _found:
+        try:
+            table = driver.find_element(By.ID, "sheet-sezioneDidargo:panel-votiGiornalieri:pannello")
+            _found = True
+        except:
+            time.sleep(1)
+
+
+    subtables = table.find_elements(By.TAG_NAME, "fieldset")
+    content = {}
+
+    for subtable in subtables:
+        subject = subtable.find_element(By.TAG_NAME, "legend").text
+
+        rows = subtable.find_elements(By.TAG_NAME, "tr")
+        rows = list(map(lambda row: row.text, rows))
+        rows = list(map(lambda i: i.strip().replace("\n", ""), rows))
+
+        # print(rows)
+
+        content[subject] = rows
+
+    try:
+        exit = driver.find_element(By.CLASS_NAME, "btl-modal-closeButton").click()
+        time.sleep(0.5)
+    except:
+        print("Error on closing marks tab")
+        pass
+    # print(content)
+    return content
+
+
+def scrap_grades(username: str, password: str, school_code: str) -> map | list[map]:
 
     ## For snap: ##
     isChrome = False
@@ -30,7 +73,7 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
             firefoxdriver_bin = "/snap/firefox/current/usr/lib/firefox/geckodriver"
 
             options = Options()
-            options.add_argument("--headless")
+            # options.add_argument("--headless")
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             options.binary_location = firefox_bin
@@ -60,37 +103,40 @@ def scrap_grades(username: str, password: str, school_code: str) -> tuple[list, 
     driver.find_element(By.NAME, "login").click()
 
     _found = False
-    while not _found: # Decorator?
+    while not _found: # Just to wait for the page to be loaded
         try:
-            driver.find_element(By.ID, "menu-servizialunno:voti-giornalieri").click()
-            _found = True
-            # print("Element found")
-        except:
-            time.sleep(1)
-
-    _found = False
-    while not _found:
-        try:
-            table = driver.find_element(By.ID, "sheet-sezioneDidargo:panel-votiGiornalieri:pannello")
+            driver.find_element(By.ID, "menu-servizialunno:voti-giornalieri")
             _found = True
         except:
             time.sleep(1)
 
-    subtables = table.find_elements(By.TAG_NAME, "fieldset")
-    content = {}
+    try:
+        change_class = driver.find_element(By.ID, "cambio-classe")
+        change_class.find_element(By.TAG_NAME, "table").click()
 
-    for subtable in subtables:
-        subject = subtable.find_element(By.TAG_NAME, "legend").text
+        time.sleep(0.5)
+        years_tab = driver.find_element(By.ID, "_idJsp58")
+        years_table = years_tab.find_elements(By.TAG_NAME, "table")[-1]
+        cells = years_table.find_elements(By.TAG_NAME, "td")
 
-        rows = subtable.find_elements(By.TAG_NAME, "tr")
-        rows = list(map(lambda row: row.text, rows))
-        rows = list(map(lambda i: i.strip().replace("\n", ""), rows))
+        contents = []
+        
+        for i in range(len(cells) // 2):
+            cells[2*i].click()
+            content = read_grades(driver)
+            contents.append({cells[2*i].text: content})
 
-        # print(rows)
+            change_class = driver.find_element(By.ID, "cambio-classe")
+            change_class.find_element(By.TAG_NAME, "table").click()
+        
+        print(contents)
+        time.sleep(50)
 
-        content[subject] = rows
+    except:
+        print("Change class not found")
+        pass
 
-    # print(content)
+    content = read_grades(driver)
 
     driver.quit()
 
